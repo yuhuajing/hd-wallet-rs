@@ -1,30 +1,14 @@
 [package]
-name = "wallet"
-version = "0.0.0"
-
-# [dependencies.MoveStdlib]
-# git = "https://github.com/aptos-labs/aptos-core.git"
-# subdir = "aptos-move/framework/move-stdlib"
-# rev = "b718154c93b3556658c8c06341be0cf47957188c"
-
-# [dependencies.AptosStdlib]
-# git = "https://github.com/aptos-labs/aptos-core.git"
-# subdir = "aptos-move/framework/aptos-stdlib"
-# rev = "b718154c93b3556658c8c06341be0cf47957188c"
-
-# [dependencies.AptosFramework]
-# git = "https://github.com/aptos-labs/aptos-core.git"
-# subdir = "aptos-move/framework/aptos-framework"
-# rev = "b718154c93b3556658c8c06341be0cf47957188c"
-
-# [dependencies.AptosToken]
-# git = "https://github.com/aptos-labs/aptos-core.git"
-# subdir = "aptos-move/framework/aptos-token"
-# rev = "b718154c93b3556658c8c06341be0cf47957188c"
+name = "hdwallet"
+version = "0.0.1"
 
 [dependencies]
-AptosFramework = { local = "../aptos-core/aptos-move/framework/aptos-framework" }
-AptosToken = { local = "../aptos-core/aptos-move/framework/aptos-token" }
+AptosFramework = { local = "./aptos-move/framework/aptos-framework" }
+AptosToken = { local = "./aptos-move/framework/aptos-token" }
 
 [addresses]
-hello_blockchain = "0x91a7e539806ff68caf1bcba305c8f694182898949c581586b4c9676e6bf35392"
+# hdwallet="0x6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f"
+# source_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a"
+# owner_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a"
+# manager_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a"
+# signer_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a"

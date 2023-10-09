@@ -6,16 +6,16 @@ profiles:
     account: 9a5d772d8cde6d444c0a3c9ba1b0ca6b90e5580935b6e021a8cca658c0f0043f
     rest_url: "https://fullnode.devnet.aptoslabs.com"
     faucet_url: "https://faucet.devnet.aptoslabs.com"
+  hdwallet:
+    private_key: "0x0e268f64033f5c11f4d64c104d207e3c0d859cfec8de38c07a776bade9740438"
+    public_key: "0x1e0cdf8b41e1f2c5c6702fe27f339f957cd6b7b7c69614aea5c7b003950d15b3"
+    account: 6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f
+    rest_url: "https://fullnode.devnet.aptoslabs.com"
+    faucet_url: "https://faucet.devnet.aptoslabs.com"
   manager:
     private_key: "0x2067c424da5ebfa1402d7c5a3f5176d0c9e90cedf3e68b31dacd9e62ebe6864a"
     public_key: "0x47c99a0ea6ee68b436b54842c74d783bf9fb867cb97c1f9975f598ad59e68c94"
     account: 9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a
-    rest_url: "https://fullnode.devnet.aptoslabs.com"
-    faucet_url: "https://faucet.devnet.aptoslabs.com"
-  nft-mint:
-    private_key: "0x2ae61310bf8d484b2b33861f8c523e3924b0dc72e76c821ca34a1c321746724b"
-    public_key: "0x62c090a6a27249077aa0be9abe9166bfc76c3f396d5e6e985b7ce9ce1a9e7fee"
-    account: f32dab3492272b1ef0608fac0344d5f1058589db91f52f573b75a2ed0209c8cf
     rest_url: "https://fullnode.devnet.aptoslabs.com"
     faucet_url: "https://faucet.devnet.aptoslabs.com"
   owner:
