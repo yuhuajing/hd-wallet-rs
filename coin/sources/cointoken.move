@@ -16,7 +16,7 @@
     const ERR_NO_UNLOCKED:u64=6;
     const ENOT_VALID_LOCK_TIME:u64=7;
     const E_NOT_WHIIELIST:u64=8;
-    const DEPLOYER: address = @admin;
+    const DEPLOYER: address = @ClayCoin;
     const RESOURCE_ACCOUNT_ADDRESS: address = @staking;
     const TEAM_ADDRESS: address = @team;
 

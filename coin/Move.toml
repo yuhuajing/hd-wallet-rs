@@ -8,6 +8,6 @@ AptosToken = { local = "../aptos-move/framework/aptos-token" }
 
 [addresses]
 ClayCoin = "9a5d772d8cde6d444c0a3c9ba1b0ca6b90e5580935b6e021a8cca658c0f0043f" ##Admin
-admin = "9a5d772d8cde6d444c0a3c9ba1b0ca6b90e5580935b6e021a8cca658c0f0043f"
+#admin = "9a5d772d8cde6d444c0a3c9ba1b0ca6b90e5580935b6e021a8cca658c0f0043f"
 staking="8e145f8fc0b5a9560b1ff2f2f4f456007ddb42aa719662f70a47a798a3d16165"
 team="69ce5625c392e0b54e7a9bcb9b004d1e054bc6f266e4b4a75acff09c9e6a7b2e"
