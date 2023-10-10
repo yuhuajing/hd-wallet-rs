@@ -86,21 +86,21 @@ module nfttoken::nftToken{
 
     public entry fun init_candy(
         account: &signer,
-        collection_name: String,
-        collection_description: String,
-        collection_url: String,
-        royalty_payee_address:address,
-        royalty_points_denominator: u64,
-        royalty_points_numerator: u64,
-        presale_mint_time: u64,
-        public_sale_mint_time: u64,
-        presale_mint_price: u64,
-        public_sale_mint_price: u64,
-        total_supply:u64,
-        collection_mutate_setting:vector<bool>,
-        token_mutate_setting:vector<bool>,
-        public_mint_limit: u64,
-        seeds: vector<u8>
+        collection_name: String, // qweq
+        collection_description: String,//asd
+        collection_url: String,//http://clay
+        royalty_payee_address:address,//0x9a5d772d8cde6d444c0a3c9ba1b0ca6b90e5580935b6e021a8cca658c0f0043f
+        royalty_points_denominator: u64,//100
+        royalty_points_numerator: u64,//2
+        presale_mint_time: u64,//1
+        public_sale_mint_time: u64,//2
+        presale_mint_price: u64,//1
+        public_sale_mint_price: u64,//1
+        total_supply:u64,//100
+        collection_mutate_setting:vector<bool>,// [false,false,false]
+        token_mutate_setting:vector<bool>, //[false,false,false,false,false]
+        public_mint_limit: u64,//7
+        seeds: vector<u8>//0x4941564d56
     ){
         let (_resource, resource_cap) = account::create_resource_account(account, seeds);
         let resource_signer_from_cap = account::create_signer_with_capability(&resource_cap);
@@ -108,7 +108,7 @@ module nfttoken::nftToken{
         move_to<ResourceInfo>(&resource_signer_from_cap, ResourceInfo{resource_cap: resource_cap, source: signer::address_of(account)});
         assert!(vector::length(&collection_mutate_setting) == 3 && vector::length(&token_mutate_setting) == 5, INVALID_MUTABLE_CONFIG);
         assert!(royalty_points_denominator > 0, EINVALID_ROYALTY_NUMERATOR_DENOMINATOR);
-        assert!(public_sale_mint_time > presale_mint_time && presale_mint_time >= now,EINVALID_MINT_TIME);
+        assert!(public_sale_mint_time > presale_mint_time && presale_mint_time >= 0,EINVALID_MINT_TIME);
         assert!(royalty_points_numerator <= royalty_points_denominator, EINVALID_ROYALTY_NUMERATOR_DENOMINATOR);
         move_to<NFTMachine>(&resource_signer_from_cap, NFTMachine{
             collection_name,
@@ -117,8 +117,8 @@ module nfttoken::nftToken{
             royalty_payee_address,
             royalty_points_denominator,
             royalty_points_numerator,
-            presale_mint_time,
-            public_sale_mint_time,
+            presale_mint_time:now+presale_mint_time,
+            public_sale_mint_time:public_sale_mint_time+now,
             presale_mint_price,
             public_sale_mint_price,
             total_supply,
@@ -190,6 +190,13 @@ module nfttoken::nftToken{
         mint(receiver,resource_addr,candy_data.presale_mint_price);
     }
 
+    public entry fun opt_in_receive_nft(
+        from: &signer,
+        opt_in:bool,
+    )acquires ResourceInfo, NFTMachine{
+        token::opt_in_direct_transfer(from,opt_in);
+    }
+
      public entry fun transfer_nft(
         from: &signer,
         resource_addr: address,
@@ -247,7 +254,7 @@ module nfttoken::nftToken{
         let properties = vector::empty<String>();
         string::append(&mut collection_url,num_str(mint_position));
         let token_name = candy_data.collection_name;
-        string::append(&mut token_name,string::utf8(b" #"));
+        string::append(&mut token_name,string::utf8(b"#"));
         string::append(&mut token_name,num_str(mint_position));
         string::append(&mut collection_url,string::utf8(b".json"));
         let token_mut_config = token::create_token_mutability_config(&candy_data.token_mutate_setting);
