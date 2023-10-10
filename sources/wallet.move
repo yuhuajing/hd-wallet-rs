@@ -131,6 +131,32 @@ module hdwallet::create_nft_with_resource_account {
        // module_data.signer_address = newsigner_address;
     }
 
+        //only owner
+    public entry fun transfer_NFT(
+        account_signer: &signer, 
+        to:address,
+        creator: address,
+        collection_name:String,
+        token_name:String,
+        token_property_version:u64,
+        amount:u64)
+        acquires ModuleData{
+        let caller_address = signer::address_of(account_signer);
+        let module_data = borrow_global_mut<ModuleData>(@hdwallet);
+        let owner_address = &module_data.owner_address;
+        // Abort if the caller is not the manager of this module.
+        assert!(caller_address ==*owner_address, error::permission_denied(ENOT_AUTHORIZED));
+        let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
+        let token_id = token::create_token_id_raw(creator, collection_name, token_name, token_property_version);
+        token::transfer(&resource_signer, token_id, to, amount);
+    }
+
+    public entry fun opt_in_receive_nft()acquires ModuleData{
+        let module_data = borrow_global_mut<ModuleData>(@hdwallet);
+        let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
+        token::opt_in_direct_transfer(&resource_signer,true);
+    }
+
     const ENOT_INITIALIZED: u64 = 0;
     struct NumberHolder has key {
         u8: u8,

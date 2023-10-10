@@ -190,14 +190,11 @@ module nfttoken::nftToken{
         mint(receiver,resource_addr,candy_data.presale_mint_price);
     }
 
-    public entry fun opt_in_receive_nft(
-        from: &signer,
-        opt_in:bool,
-    )acquires ResourceInfo, NFTMachine{
+    public entry fun opt_in_receive_nft(from: &signer,opt_in:bool,){
         token::opt_in_direct_transfer(from,opt_in);
     }
 
-     public entry fun transfer_nft(
+    public entry fun transfer_nft(
         from: &signer,
         resource_addr: address,
         to:address,
