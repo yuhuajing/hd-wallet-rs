@@ -3,20 +3,20 @@ module hdwallet::create_nft_with_resource_account {
     use aptos_token::token;
     use std::signer;
     use std::string::{Self,String};
-    use aptos_token::token::TokenDataId;
     use aptos_framework::account::SignerCapability;
     use aptos_framework::resource_account;
     use aptos_framework::account;
     use std::error;
-    use aptos_std::smart_table::{Self, SmartTable};
+    // use aptos_std::smart_table::{Self, SmartTable};
     use aptos_framework::aptos_account;
     use aptos_std::ed25519;
     use aptos_std::from_bcs;
 
     const ENOT_AUTHORIZED: u64 = 0;
-    const E_USER_SIGNATURE_NOT_SATISFIED =1;
-    const E_MANAGER_SIGNATURE_NOT_SATISFIED =2;
-    const E_NOT_VALID_PUBKEY=3;
+    const E_USER_SIGNATURE_NOT_SATISFIED: u64 =1;
+    const E_MANAGER_SIGNATURE_NOT_SATISFIED: u64 =2;
+    const E_NOT_VALID_PUBKEY: u64 =3;
+    const E_PUBKEY_ALREADY_INITIALIZED: u64 = 4;
     const EINVALID_PROOF_OF_KNOWLEDGE: u64 = 8;
 
     // struct SigData has copy, drop, store {
@@ -51,51 +51,50 @@ module hdwallet::create_nft_with_resource_account {
     }
 
     // only manager and Not initialized
-    fun entry init_public_key(account_signer: &signer, manager_public_key: vector<u8>,signer_public_key: vector<u8>) acquires ModuleData,ModulePublicKey{
+    public entry fun initilized_public_key(account_signer: &signer, manager_public_key: vector<u8>,signer_public_key: vector<u8>) acquires ModuleData{
         let caller_address = signer::address_of(account_signer);
-        let module_data = borrow_global_mut<ModuleData>(@hdwallet);
+        let module_data = borrow_global<ModuleData>(@hdwallet);
         let manager_address = &module_data.manager_address;
         // Abort if the caller is not the manager of this module.
         assert!(caller_address == *manager_address, error::permission_denied(ENOT_AUTHORIZED));
         assert!(!exists<ModulePublicKey>(caller_address),E_PUBKEY_ALREADY_INITIALIZED);
         let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
 
-        move_to(resource_signer, ModulePublicKey {
+        move_to(&resource_signer, ModulePublicKey {
             manager_public_key: std::option::extract(&mut ed25519::new_validated_public_key_from_bytes(manager_public_key)),
             signer_public_key: std::option::extract(&mut ed25519::new_validated_public_key_from_bytes(signer_public_key)),
         });
     }
 
-    public fun acquire_valid_user_sign_sig(
+    fun acquire_valid_user_sign_sig(
         signature: vector<u8>,
         sign_message: vector<u8>
     ):bool acquires ModulePublicKey {
-        let module_key_data = borrow_global_mut<ModulePublicKey>(@hdwallet);
+        let module_key_data = borrow_global<ModulePublicKey>(@hdwallet);
         let pk = ed25519::public_key_into_unvalidated(module_key_data.signer_public_key);
         let sig = ed25519::new_signature_from_bytes(signature);
         ed25519::signature_verify_strict(&sig, &pk, sign_message)
     }
 
-    public fun acquire_valid_manager_sig(
+    fun acquire_valid_manager_sig(
         signature: vector<u8>,
         sign_message: vector<u8>
     ):bool acquires ModulePublicKey {
-        let module_key_data = borrow_global_mut<ModulePublicKey>(@hdwallet);
+        let module_key_data = borrow_global<ModulePublicKey>(@hdwallet);
         let pk = ed25519::public_key_into_unvalidated(module_key_data.manager_public_key);
         let sig = ed25519::new_signature_from_bytes(signature);
         ed25519::signature_verify_strict(&sig, &pk, sign_message)
     }
 
     //only manager
-    public entry fun resetOrforgetPassword(account_signer: &signer,user_signature: vector<u8>, user_sign_message: vector<u8>,manager_signature: vector<u8>, manager_sign_message: vector<u8>, newowner_address:address )acquires ModuleData{
+    public entry fun resetOrforgetPassword(account_signer: &signer,user_signature: vector<u8>, user_sign_message: vector<u8>,manager_signature: vector<u8>, manager_sign_message: vector<u8>, newowner_address:address )acquires ModuleData,ModulePublicKey{
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global_mut<ModuleData>(@hdwallet);
         let manager_address = &module_data.manager_address;
         // Abort if the caller is not the manager of this module.
         assert!(caller_address == *manager_address, error::permission_denied(ENOT_AUTHORIZED));
-
         assert!(acquire_valid_user_sign_sig(user_signature, user_sign_message),E_USER_SIGNATURE_NOT_SATISFIED);
-        assert!(acquire_valid_user_sign_sig(manager_signature, manager_sign_message),E_MANAGER_SIGNATURE_NOT_SATISFIED);
+        assert!(acquire_valid_manager_sig(manager_signature, manager_sign_message),E_MANAGER_SIGNATURE_NOT_SATISFIED);
         module_data.owner_address = newowner_address;
         // //to-do-list Verify the signer_address and Sig
         // let signer_address = &module_data.signer_address;
@@ -115,10 +114,10 @@ module hdwallet::create_nft_with_resource_account {
         // Abort if the caller is not the manager of this module.
         assert!(caller_address ==*manager_address, error::permission_denied(ENOT_AUTHORIZED));
 
-        let new_managerr_public_key = ed25519::new_validated_public_key_from_bytes(new_manager_pub_key);
+        let new_managerr_public_key = std::option::extract(&mut ed25519::new_validated_public_key_from_bytes(new_manager_pub_key));
         let curr_auth_key = ed25519::validated_public_key_to_authentication_key(&new_managerr_public_key);
         let new_manager_addr = from_bcs::to_address(curr_auth_key);
-        module_data.manager_address = newmanager_address;
+        module_data.manager_address = new_manager_addr;
         let pk = ed25519::public_key_into_unvalidated(new_managerr_public_key);
         let sig = ed25519::new_signature_from_bytes(signature);
         assert!(ed25519::signature_verify_strict(&sig, &pk, sign_message),E_NOT_VALID_PUBKEY);
@@ -134,7 +133,7 @@ module hdwallet::create_nft_with_resource_account {
         // Abort if the caller is not the owner of this module.
         assert!(caller_address ==*owner_address, error::permission_denied(ENOT_AUTHORIZED));
 
-        let new_signer_public_key = ed25519::new_validated_public_key_from_bytes(new_user_sign_pub_key);
+        let new_signer_public_key = std::option::extract(&mut ed25519::new_validated_public_key_from_bytes(new_user_sign_pub_key));
         let pk = ed25519::public_key_into_unvalidated(copy new_signer_public_key);
         let sig = ed25519::new_signature_from_bytes(signature);
         assert!(ed25519::signature_verify_strict(&sig, &pk, sign_message),E_NOT_VALID_PUBKEY);
@@ -145,7 +144,7 @@ module hdwallet::create_nft_with_resource_account {
     //only owner
     public entry fun transfer(account_signer: &signer, to: address, amount: u64)acquires ModuleData{
         let caller_address = signer::address_of(account_signer);
-        let module_data = borrow_global_mut<ModuleData>(@hdwallet);
+        let module_data = borrow_global<ModuleData>(@hdwallet);
         let owner_address = &module_data.owner_address;
         // Abort if the caller is not the manager of this module.
         assert!(caller_address ==*owner_address, error::permission_denied(ENOT_AUTHORIZED));
@@ -155,7 +154,7 @@ module hdwallet::create_nft_with_resource_account {
         //only owner
     public entry fun transfer_coins<CoinType>(account_signer: &signer, to: address, amount: u64)acquires ModuleData{
         let caller_address = signer::address_of(account_signer);
-        let module_data = borrow_global_mut<ModuleData>(@hdwallet);
+        let module_data = borrow_global<ModuleData>(@hdwallet);
         let owner_address = &module_data.owner_address;
         // Abort if the caller is not the manager of this module.
         assert!(caller_address ==*owner_address, error::permission_denied(ENOT_AUTHORIZED));
@@ -175,7 +174,7 @@ module hdwallet::create_nft_with_resource_account {
         amount:u64)
         acquires ModuleData{
         let caller_address = signer::address_of(account_signer);
-        let module_data = borrow_global_mut<ModuleData>(@hdwallet);
+        let module_data = borrow_global<ModuleData>(@hdwallet);
         let owner_address = &module_data.owner_address;
         // Abort if the caller is not the manager of this module.
         assert!(caller_address ==*owner_address, error::permission_denied(ENOT_AUTHORIZED));
@@ -186,28 +185,28 @@ module hdwallet::create_nft_with_resource_account {
 
     // must execute opt_in_receive_nft() before receiving any NFT token asserts.
     public entry fun opt_in_receive_nft()acquires ModuleData{
-        let module_data = borrow_global_mut<ModuleData>(@hdwallet);
+        let module_data = borrow_global<ModuleData>(@hdwallet);
         let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
         token::opt_in_direct_transfer(&resource_signer,true);
     }
 
 
     #[view]
-     public  fun getManager(): (address)acquires ModuleData{
+     public fun getManager(): (address)acquires ModuleData{
         let module_data = borrow_global<ModuleData>(@hdwallet);
         let manager_address = &module_data.manager_address;
         // Abort if the caller is not the manager of this module.
         *manager_address
     }
     #[view]
-     public  fun getOwner(): (address)acquires ModuleData{
+     public fun getOwner(): (address)acquires ModuleData{
         let module_data = borrow_global<ModuleData>(@hdwallet);
         let owner_address = &module_data.owner_address;
         // Abort if the caller is not the manager of this module.
         *owner_address
     }
     #[view]
-     public  fun getSignerAddress(): (address)acquires ModuleData{
+     public fun getSignerAddress(): (address)acquires ModuleData{
         let module_data = borrow_global<ModuleData>(@hdwallet);
         let signer_address = &module_data.signer_address;
         // Abort if the caller is not the manager of this module.
@@ -216,7 +215,7 @@ module hdwallet::create_nft_with_resource_account {
 //     const ENOT_VALID_SIGINDEX:u64=0;
 
 //     #[view]
-//     public  fun readSig():(address,String) acquires ModuleData {
+//     public fun readSig():(address,String) acquires ModuleData {
 //    // public  fun readSig(modTurn:u64):(address,String) acquires ModuleData {
 //          let module_data = borrow_global<ModuleData>(@hdwallet);
 //          let signature_table = &module_data.signature;

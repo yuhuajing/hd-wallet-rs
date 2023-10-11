@@ -7,8 +7,8 @@ AptosFramework = { local = "./aptos-move/framework/aptos-framework" }
 AptosToken = { local = "./aptos-move/framework/aptos-token" }
 
 [addresses]
-# hdwallet="0x6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f"
-# source_addr="0x6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f"  // hdwallet address
-# owner_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a"
-# manager_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a"
-# signer_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a"
+hdwallet="0x6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f"
+source_addr="0x6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f"  # hdwallet address
+owner_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a"
+manager_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a"
+signer_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a"
