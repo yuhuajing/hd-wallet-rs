@@ -11,6 +11,8 @@ module hdwallet::create_nft_with_resource_account {
     use aptos_framework::aptos_account;
     use aptos_std::ed25519;
     use aptos_std::from_bcs;
+    use aptos_framework::timestamp;
+    use aptos_std::type_info::{Self, TypeInfo};
 
     const ENOT_AUTHORIZED: u64 = 0;
     const E_USER_SIGNATURE_NOT_SATISFIED: u64 =1;
@@ -29,6 +31,39 @@ module hdwallet::create_nft_with_resource_account {
         manager_address:address,
         signer_address:address,
       //  signature:SmartTable<u64, SigData>,
+    }
+    //Wtire in resource struct
+    struct PayAptosOrder has copy, drop, store {
+        delay: u64,
+        payee: address,
+        receiver: address,
+        amount: u64
+    }
+
+// signature + write in resource struct
+    struct PayCoinOrder has copy, drop, store {
+        cointype: TypeInfo, // sign message
+        delay: u64,
+        payee: address,
+        receiver: address,
+        amount: u64
+    }
+    //     struct TypeInfo has copy, drop, store {
+    //     account_address: address,
+    //     module_name: vector<u8>,
+    //     struct_name: vector<u8>,
+    // }
+
+        //Wtire in resource struct
+        struct PayNFTTokenOrder has copy, drop, store {
+        delay: u64,
+        payee: address,
+        receiver:address,
+        creator: address,
+        collection_name:String,
+        token_name:String,
+        token_property_version:u64,
+        amount:u64
     }
 
     struct ModulePublicKey has key{
@@ -151,7 +186,8 @@ module hdwallet::create_nft_with_resource_account {
         let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
         aptos_account::transfer(&resource_signer, to, amount);
     }
-        //only owner
+
+    //only owner
     public entry fun transfer_coins<CoinType>(account_signer: &signer, to: address, amount: u64)acquires ModuleData{
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global<ModuleData>(@hdwallet);
@@ -163,7 +199,7 @@ module hdwallet::create_nft_with_resource_account {
        // module_data.signer_address = newsigner_address;
     }
 
-        //only owner
+    //only owner
     public entry fun transfer_NFT(
         account_signer: &signer, 
         to:address,
