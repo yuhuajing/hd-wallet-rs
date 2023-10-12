@@ -7,7 +7,6 @@ module hdwallet::create_nft_with_resource_account {
     use aptos_framework::resource_account;
     use aptos_framework::account;
     use std::error;
-    // use aptos_std::smart_table::{Self, SmartTable};
     use aptos_framework::aptos_account;
     use aptos_std::ed25519;
     use aptos_std::from_bcs;
@@ -77,7 +76,11 @@ module hdwallet::create_nft_with_resource_account {
     }
 
     // only manager and key Not initialized
-    public entry fun initilized_public_key(account_signer: &signer, manager_public_key: vector<u8>,signer_public_key: vector<u8>) acquires ModuleData{
+    public entry fun initilized_public_key(
+        account_signer: &signer, 
+        manager_public_key: vector<u8>,
+        signer_public_key: vector<u8>) 
+        acquires ModuleData{
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global<ModuleData>(@hdwallet);
       //  let manager_address = &module_data.manager_address;
@@ -115,7 +118,14 @@ module hdwallet::create_nft_with_resource_account {
     }
 
     //only user_signer_address
-    public entry fun resetOwner(account_signer: &signer,user_signature: vector<u8>, user_sign_message: String, manager_signature: vector<u8>, manager_sign_message: String, newowner_address:address )acquires ModuleData,ModulePublicKey{
+    public entry fun resetOwner(
+        account_signer: &signer,
+        user_signature: vector<u8>, 
+        user_sign_message: String, 
+        manager_signature: vector<u8>, 
+        manager_sign_message: String, 
+        newowner_address:address )
+        acquires ModuleData,ModulePublicKey{
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global_mut<ModuleData>(@hdwallet);
         assert!(caller_address == module_data.signer_address, error::permission_denied(ENOT_AUTHORIZED));
@@ -125,7 +135,12 @@ module hdwallet::create_nft_with_resource_account {
     }
 
     //only manager
-    public entry fun resetManager(manager_signer: &signer, new_manager_pub_key:vector<u8>, signature: vector<u8>, sign_message: vector<u8>)acquires ModuleData,ModulePublicKey{
+    public entry fun resetManager(
+        manager_signer: &signer, 
+        new_manager_pub_key:vector<u8>, 
+        signature: vector<u8>, 
+        sign_message: vector<u8>)
+        acquires ModuleData,ModulePublicKey{
         let caller_address = signer::address_of(manager_signer);
         let module_data = borrow_global_mut<ModuleData>(@hdwallet);
         assert!(caller_address == module_data.manager_address, error::permission_denied(ENOT_AUTHORIZED));
@@ -141,7 +156,12 @@ module hdwallet::create_nft_with_resource_account {
     }
 
     //only owner
-    public entry fun resetSigner(account_signer: &signer, new_user_sign_pub_key:vector<u8>, signature: vector<u8>, sign_message: vector<u8>)acquires ModuleData,ModulePublicKey{
+    public entry fun resetSigner(
+        account_signer: &signer, 
+        new_user_sign_pub_key:vector<u8>, 
+        signature: vector<u8>, 
+        sign_message: vector<u8>)
+        acquires ModuleData,ModulePublicKey{
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global_mut<ModuleData>(@hdwallet);
         assert!(caller_address == module_data.owner_address, error::permission_denied(ENOT_AUTHORIZED));
@@ -157,7 +177,11 @@ module hdwallet::create_nft_with_resource_account {
     }
 
     //only owner
-    public entry fun transfer(account_signer: &signer, to: address, amount: u64)acquires ModuleData{
+    public entry fun transfer(
+        account_signer: &signer,
+        to: address, 
+        amount: u64)
+        acquires ModuleData{
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global<ModuleData>(@hdwallet);
         assert!(caller_address == module_data.owner_address, error::permission_denied(ENOT_AUTHORIZED));
@@ -180,7 +204,15 @@ module hdwallet::create_nft_with_resource_account {
 
     //default delay latency is 5 minutes(300s)
     //only Manager
-    public entry fun setAptTransPayee(account_signer: &signer, amount: u64, payee:address, receiver: address, delay:u64, user_sign_message:String, user_signature:vector<u8> )acquires ModuleData,PayAptosOrder{
+    public entry fun setAptTransPayee(
+        account_signer: &signer, 
+        amount: u64, 
+        payee:address, 
+        receiver: address, 
+        delay:u64, 
+        user_sign_message:String, 
+        user_signature:vector<u8> )
+        acquires ModuleData,PayAptosOrder{
         assert!(amount>0,E_INVALID_ZERO_AMOUNT);
         assert!(delay>=300,E_DELAY_LESS_THAN_300);
         assert!(acquire_valid_user_sign_sig(user_signature, user_sign_message),E_USER_SIGNATURE_NOT_SATISFIED);
@@ -236,7 +268,15 @@ module hdwallet::create_nft_with_resource_account {
     }
 
     // only Manager
-    public entry fun setCoinTransPayee<CoinType>(account_signer: &signer, amount: u64, payee:address, receiver: address, delay:u64, user_sign_message:String, user_signature:vector<u8> )acquires ModuleData,PayCoinOrder{
+    public entry fun setCoinTransPayee<CoinType>(
+        account_signer: &signer, 
+        amount: u64, 
+        payee:address, 
+        receiver: address, 
+        delay:u64, 
+        user_sign_message:String, 
+        user_signature:vector<u8> )
+        acquires ModuleData,PayCoinOrder{
         assert!(amount > 0, E_INVALID_ZERO_AMOUNT);
         assert!(delay >= 300, E_DELAY_LESS_THAN_300);
         assert!(acquire_valid_user_sign_sig(user_signature, user_sign_message),E_USER_SIGNATURE_NOT_SATISFIED);
@@ -373,5 +413,4 @@ module hdwallet::create_nft_with_resource_account {
         let module_data = borrow_global<ModuleData>(@hdwallet);
         module_data.signer_address;
     }
-
 }
