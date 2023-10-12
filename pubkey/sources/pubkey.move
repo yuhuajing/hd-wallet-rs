@@ -1,4 +1,4 @@
-module pubkey::test_pubkey_addressv3 {
+module pubkey::test_pubkey_addressv4 {
     use std::signer;
     use aptos_std::ed25519;
     use aptos_std::from_bcs;
@@ -65,6 +65,43 @@ module pubkey::test_pubkey_addressv3 {
         if( ed25519::signature_verify_strict(&sig, &pk, x"01")){
             old_message_holder.res=true
          }
+    }
+
+
+    
+    fun convertStringToVector(str:String):vector<u8> {
+        return *string::bytes(&str)
+    }
+
+    // pri = 3022397cba2a79e9a10d781aa27cb73fa5317abd7a663f5648257c09cfbb65e0
+    // pub = d6b03c85c6b01b7bc605de92124a93fcf6520077ded5be72d1f8c6a5d84c55e6
+    // address = 57958350a6412c3dba013f56efd18fa73ba2cc248cadac9ad2548db77bdf1604
+    // data = 57656c636f6d6520746f204170746f73204d6f7665206279204578616d706c6573 // Welcome to Aptos Move by Examples
+    // signature = 9d260de5c466fc8011a03d188d723389b4c89e92bb0ffccbc33122585725147433cefaa38b719f45fef0b89d1c4487846c19e0354f2e4d3f20aca51ccbeb840d
+
+    public entry fun acquire_valid_user_sign_sig(
+        account_signer: &signer,
+        pk_bytes: vector<u8>,
+        signature: vector<u8>,
+        sign_message: String
+    ) acquires ModuleData {
+        let caller_address = signer::address_of(account_signer);
+        if (!exists<ModuleData>(caller_address)) {
+            move_to(account_signer, ModuleData {
+                owner_address:caller_address,
+                owner_public_key:std::option::extract(&mut ed25519::new_validated_public_key_from_bytes(pk_bytes)),
+                res:false
+            });
+        };
+
+        let old_message_holder = borrow_global_mut<ModuleData>(caller_address);
+        let pk = ed25519::public_key_into_unvalidated(std::option::extract(&mut ed25519::new_validated_public_key_from_bytes(pk_bytes)));
+        let sig = ed25519::new_signature_from_bytes(signature);
+        if (ed25519::signature_verify_strict(&sig, &pk, convertStringToVector(sign_message))){
+            old_message_holder.res=true;
+        }else{
+            old_message_holder.res=false;
+        }
     }
 
 

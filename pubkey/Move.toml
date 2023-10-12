@@ -1,5 +1,5 @@
 [package]
-name = "pubkeyv3"
+name = "pubkeyv4"
 version = "0.0.0"
 
 [dependencies]
