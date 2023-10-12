@@ -1,5 +1,5 @@
 [package]
-name = "resourceaccount"
+name = "resourceaccountv3"
 version = "0.0.0"
 
 [dependencies]

@@ -1,4 +1,4 @@
-module smtable::calResaddress {
+module smtable::calResaddressv3 {
     use std::signer;
     use aptos_framework::account;
     use std::string::{Self,String};
@@ -6,6 +6,9 @@ module smtable::calResaddress {
   //  use aptos_framework::create_signer;
     struct ModuleData has key {
         res_address:SmartTable<String, address>,
+        testb:bool,
+        number:u64,
+        new_number:u64,
     }
 
     public entry fun generate_res_address(account_signer: &signer, seed: String) acquires ModuleData {
@@ -17,6 +20,9 @@ module smtable::calResaddress {
         if (!exists<ModuleData>(caller_address)) {
             move_to(account_signer, ModuleData {
                 res_address:smart_table::new(),
+                testb:false,
+                number:0,
+                new_number:0,
             });
         };
         let module_data = borrow_global_mut<ModuleData>(caller_address);
@@ -25,6 +31,12 @@ module smtable::calResaddress {
             smart_table::add(res_address_table,seed,resource_addr);
         };
     }
+
+    public entry fun setBoll(isbool: bool) acquires ModuleData {
+        let module_data = borrow_global_mut<ModuleData>(@smtable);
+        module_data.testb = isbool;
+    }
+
     #[view]
     public fun readResAddress(addr:address, seed:String):(address) acquires ModuleData {
          let module_data = borrow_global<ModuleData>(addr);
@@ -32,5 +44,13 @@ module smtable::calResaddress {
         // let length = smart_table::length(res_address_table);
          let res_address = smart_table::borrow(res_address_table, seed);
          *res_address
+    }
+
+    #[view]
+    public fun readnumber(addr:address):(u64,u64) acquires ModuleData {
+         let module_data = borrow_global<ModuleData>(addr);
+         let number = module_data.number;
+         let newnumber = module_data.new_number;
+         (number,newnumber)
     }
 }
