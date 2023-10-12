@@ -10,5 +10,5 @@ AptosToken = { local = "./aptos-move/framework/aptos-token" }
 # hdwallet="0x6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f"
 # source_addr="0x6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f"  # hdwallet address
 # owner_addr="0x119aedb5c669cc687a84d29467c507448993ec520ef1b743cf62aee838e59c04"
-# manager_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a"
-# signer_addr="0x9e7c6a16c798d8ee548faec4b2c4dff7d7ef3f09f56aadd612b9dbdf23859265"
+# manager_addr="0x9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a" #0x47c99a0ea6ee68b436b54842c74d783bf9fb867cb97c1f9975f598ad59e68c94
+# signer_addr="0x9e7c6a16c798d8ee548faec4b2c4dff7d7ef3f09f56aadd612b9dbdf23859265" #0x4407557bcc3a6c7cc5da6c5e06267a4afbda606143768d5af95a90972a3b916b

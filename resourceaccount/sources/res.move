@@ -53,4 +53,14 @@ module smtable::calResaddressv3 {
          let newnumber = module_data.new_number;
          (number,newnumber)
     }
+
+//  aptos move test --named-addresses source_addr=6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f
+    use std::debug;
+    #[test(source_addr=@source_addr)]
+    fun generate_resaddress() {
+       let seed=string::utf8(b"yhj006");
+       let seedbytes = *string::bytes(&seed);
+       let resource_addr = account::create_resource_address(&@source_addr, seedbytes);
+       debug::print(&resource_addr);
+    }
 }

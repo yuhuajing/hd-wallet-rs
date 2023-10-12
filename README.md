@@ -1,5 +1,5 @@
 1. 将资源发布到资源号中，签名放在账户中，每次调用资源号的数据就不用额外签名
-> aptos move create-resource-account-and-publish-package --address-name hdwallet --profile hdwallet --seed yhj005 --named-addresses source_addr=6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f,owner_addr=119aedb5c669cc687a84d29467c507448993ec520ef1b743cf62aee838e59c04,manager_addr=9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a,signer_addr=9e7c6a16c798d8ee548faec4b2c4dff7d7ef3f09f56aadd612b9dbdf23859265
+> aptos move create-resource-account-and-publish-package --address-name hdwallet --profile hdwallet --seed yhj006 --named-addresses source_addr=6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f,owner_addr=119aedb5c669cc687a84d29467c507448993ec520ef1b743cf62aee838e59c04,manager_addr=9d70be865987802127264da700201ca2bee329ca276d0660e0eb763db5be191a,signer_addr=9e7c6a16c798d8ee548faec4b2c4dff7d7ef3f09f56aadd612b9dbdf23859265
 
 其中，不同的seed表示不同的资源号
 
