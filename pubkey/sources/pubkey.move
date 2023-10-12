@@ -2,6 +2,7 @@ module pubkey::test_pubkey_addressv3 {
     use std::signer;
     use aptos_std::ed25519;
     use aptos_std::from_bcs;
+    use std::string::{Self,String,utf8};
 
     const ENOT_AUTHORIZED: u64 = 0;
     const EINVALID_PROOF_OF_KNOWLEDGE: u64 = 8;
@@ -77,7 +78,10 @@ module pubkey::test_pubkey_addressv3 {
         debug::print(&sk);
         let pk = ed25519::public_key_into_unvalidated(vpk);
         debug::print(&pk);
-        let msg1: vector<u8> = x"01";
+        // let greet:String = utf8(b"Welcome to Aptos Move by Examples"); 
+        // let msg1: vector<u8> = greeting(greet);
+        let msg1: vector<u8> = b"Welcome to Aptos Move by Examples";
+        debug::print(&msg1);
         let sig1 = ed25519::sign_arbitrary_bytes(&sk, msg1);
         debug::print(&sig1);
         assert!(ed25519::signature_verify_strict(&sig1, &pk, msg1), std::error::invalid_state(1));
@@ -88,6 +92,12 @@ module pubkey::test_pubkey_addressv3 {
         // };
         // let sig2 = sign_struct(&sk, copy msg2);
         // assert!(signature_verify_strict_t(&sig2, &pk, copy msg2), std::error::invalid_state(2));
+    }
+
+
+    fun greeting(str:String):vector<u8> {
+        //let greet:String = utf8(b"Welcome to Aptos Move by Example"); 
+        return *string::bytes(&str)
     }
 
 }

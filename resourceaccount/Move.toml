@@ -1,0 +1,11 @@
+[package]
+name = "resourceaccount"
+version = "0.0.0"
+
+[dependencies]
+AptosFramework = { local = "../aptos-move/framework/aptos-framework" }
+AptosToken = { local = "../aptos-move/framework/aptos-token" }
+AptosStdlib = { local = "../aptos-move/framework/aptos-stdlib" }
+
+[addresses]
+smtable="9a5d772d8cde6d444c0a3c9ba1b0ca6b90e5580935b6e021a8cca658c0f0043f"
