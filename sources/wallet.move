@@ -13,7 +13,7 @@ module hdwallet::create_nft_with_resource_account {
     use aptos_framework::timestamp;
     use aptos_std::type_info::{Self, TypeInfo};
 
-    const ENOT_AUTHORIZED: u64 = 0;
+    const E_AUTHORIZED: u64 =0;
     const E_USER_SIGNATURE_NOT_SATISFIED: u64 =1;
     const E_MANAGER_SIGNATURE_NOT_SATISFIED: u64 =2;
     const E_NOT_VALID_PUBKEY: u64 =3;
@@ -21,8 +21,7 @@ module hdwallet::create_nft_with_resource_account {
     const E_INVALID_ZERO_AMOUNT:u64=5;
     const E_DELAY_LESS_THAN_300:u64=6;
     const E_HAS_PENDING_ORDER:u64=7;
-    const EINVALID_PROOF_OF_KNOWLEDGE: u64 = 8;
-    const E_OUT_DATE_ORDER:u64=9;
+    const E_OUT_DATE_ORDER:u64=8;
 
     struct ModuleData has key {
         signer_cap: SignerCapability,
@@ -84,7 +83,7 @@ module hdwallet::create_nft_with_resource_account {
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global<ModuleData>(@hdwallet);
       //  let manager_address = &module_data.manager_address;
-        assert!(caller_address == module_data.manager_address, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == module_data.manager_address, error::permission_denied(E_AUTHORIZED));
         assert!(!exists<ModulePublicKey>(@hdwallet),E_PUBKEY_ALREADY_INITIALIZED);
         let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
         move_to(&resource_signer, ModulePublicKey {
@@ -128,7 +127,7 @@ module hdwallet::create_nft_with_resource_account {
         acquires ModuleData,ModulePublicKey{
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global_mut<ModuleData>(@hdwallet);
-        assert!(caller_address == module_data.signer_address, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == module_data.signer_address, error::permission_denied(E_AUTHORIZED));
         assert!(acquire_valid_user_sign_sig(user_signature, user_sign_message),E_USER_SIGNATURE_NOT_SATISFIED);
         assert!(acquire_valid_manager_sig(manager_signature, manager_sign_message),E_MANAGER_SIGNATURE_NOT_SATISFIED);
         module_data.owner_address = newowner_address;
@@ -143,7 +142,7 @@ module hdwallet::create_nft_with_resource_account {
         acquires ModuleData,ModulePublicKey{
         let caller_address = signer::address_of(manager_signer);
         let module_data = borrow_global_mut<ModuleData>(@hdwallet);
-        assert!(caller_address == module_data.manager_address, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == module_data.manager_address, error::permission_denied(E_AUTHORIZED));
         let new_managerr_public_key = std::option::extract(&mut ed25519::new_validated_public_key_from_bytes(new_manager_pub_key));
         let curr_auth_key = ed25519::validated_public_key_to_authentication_key(&new_managerr_public_key);
         let new_manager_addr = from_bcs::to_address(curr_auth_key);
@@ -164,7 +163,7 @@ module hdwallet::create_nft_with_resource_account {
         acquires ModuleData,ModulePublicKey{
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global_mut<ModuleData>(@hdwallet);
-        assert!(caller_address == module_data.owner_address, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == module_data.owner_address, error::permission_denied(E_AUTHORIZED));
         let new_signer_public_key = std::option::extract(&mut ed25519::new_validated_public_key_from_bytes(new_user_sign_pub_key));
         let curr_auth_key = ed25519::validated_public_key_to_authentication_key(&new_signer_public_key);
         let new_signer_addr = from_bcs::to_address(curr_auth_key);
@@ -184,7 +183,7 @@ module hdwallet::create_nft_with_resource_account {
         acquires ModuleData{
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global<ModuleData>(@hdwallet);
-        assert!(caller_address == module_data.owner_address, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == module_data.owner_address, error::permission_denied(E_AUTHORIZED));
         let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
         aptos_account::transfer(&resource_signer, to, amount);
     }
@@ -194,9 +193,9 @@ module hdwallet::create_nft_with_resource_account {
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global<ModuleData>(@hdwallet);
         let aptpayeeorder = borrow_global_mut<PayAptosOrder>(@hdwallet);
-        assert!(caller_address == aptpayeeorder.payee, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == aptpayeeorder.payee, error::permission_denied(E_AUTHORIZED));
         let now = aptos_framework::timestamp::now_seconds();
-        assert!(aptpayeeorder.delay>=now,E_OUT_DATE_ORDER);
+        assert!(aptpayeeorder.delay >= now,E_OUT_DATE_ORDER);
         let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
         aptos_account::transfer(&resource_signer, aptpayeeorder.receiver, aptpayeeorder.amout);
         aptpayeeorder.delay = 0;
@@ -218,7 +217,7 @@ module hdwallet::create_nft_with_resource_account {
         assert!(acquire_valid_user_sign_sig(user_signature, user_sign_message),E_USER_SIGNATURE_NOT_SATISFIED);
         let module_data = borrow_global<ModuleData>(@hdwallet);
         let caller_address = signer::address_of(account_signer);
-        assert!(caller_address == &module_data.manager_address, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == &module_data.manager_address, error::permission_denied(E_AUTHORIZED));
         let now = aptos_framework::timestamp::now_seconds();
         if(!exists<PayAptosOrder>(@hdwallet)){
             let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
@@ -242,7 +241,7 @@ module hdwallet::create_nft_with_resource_account {
     public entry fun transfer_coins<CoinType>(account_signer: &signer, to: address, amount: u64)acquires ModuleData{
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global<ModuleData>(@hdwallet);
-        assert!(caller_address == module_data.owner_address, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == module_data.owner_address, error::permission_denied(E_AUTHORIZED));
         let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
         aptos_account::transfer_coins<CoinType>(&resource_signer, to, amount);
     }
@@ -251,16 +250,16 @@ module hdwallet::create_nft_with_resource_account {
     public entry fun payee_transfer_coins<CoinType>(account_signer: &signer)acquires ModuleData,PayCoinOrder{
         let caller_address = signer::address_of(account_signer);
         let aptpayeeorder = borrow_global_mut<PayCoinOrder>(@hdwallet);
-        assert!(caller_address == aptpayeeorder.payee, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == aptpayeeorder.payee, error::permission_denied(E_AUTHORIZED));
         let now = aptos_framework::timestamp::now_seconds();
         assert!(aptpayeeorder.delay >= now,E_OUT_DATE_ORDER);
         let coiontype = type_info::type_of<CoinType>();
         let accountaddress =  type_info::account_address(&coiontype);
         let modulename =  string::utf8(type_info::module_name(&coiontype));
         let structname =  string::utf8(type_info::struct_name(&coiontype));
-        assert!(accountaddress == aptpayeeorder.account_address, error::permission_denied(ENOT_AUTHORIZED));
-        assert!(modulename == aptpayeeorder.module_name, error::permission_denied(ENOT_AUTHORIZED));
-        assert!(structname == aptpayeeorder.struct_name, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(accountaddress == aptpayeeorder.account_address, error::permission_denied(E_AUTHORIZED));
+        assert!(modulename == aptpayeeorder.module_name, error::permission_denied(E_AUTHORIZED));
+        assert!(structname == aptpayeeorder.struct_name, error::permission_denied(E_AUTHORIZED));
         let module_data = borrow_global<ModuleData>(@hdwallet);
         let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
         aptos_account::transfer_coins<CoinType>(&resource_signer, aptpayeeorder.receiver, aptpayeeorder.amout);
@@ -282,7 +281,7 @@ module hdwallet::create_nft_with_resource_account {
         assert!(acquire_valid_user_sign_sig(user_signature, user_sign_message),E_USER_SIGNATURE_NOT_SATISFIED);
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global<ModuleData>(@hdwallet);
-        assert!(caller_address == module_data.manager_address, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == module_data.manager_address, error::permission_denied(E_AUTHORIZED));
         let coiontype = type_info::type_of<CoinType>();
         let accountaddress =  type_info::account_address(&coiontype);
         let modulename =  string::utf8(type_info::module_name(&coiontype));
@@ -324,7 +323,7 @@ module hdwallet::create_nft_with_resource_account {
         acquires ModuleData{
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global<ModuleData>(@hdwallet);
-        assert!(caller_address == module_data.owner_address, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == module_data.owner_address, error::permission_denied(E_AUTHORIZED));
         let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
         let token_id = token::create_token_id_raw(creator, collection_name, token_name, token_property_version);
         token::transfer(&resource_signer, token_id, to, amount);
@@ -341,7 +340,7 @@ module hdwallet::create_nft_with_resource_account {
     public entry fun payee_transfer_NFT(account_signer: &signer)acquires ModuleData,PayNFTTokenOrder{
         let caller_address = signer::address_of(account_signer);
         let aptpayeeorder = borrow_global_mut<PayNFTTokenOrder>(@hdwallet);
-        assert!(caller_address == aptpayeeorder.payee, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == aptpayeeorder.payee, error::permission_denied(E_AUTHORIZED));
         let now = aptos_framework::timestamp::now_seconds();
         assert!(aptpayeeorder.delay >= now,E_OUT_DATE_ORDER);
         let module_data = borrow_global<ModuleData>(@hdwallet);
@@ -366,7 +365,7 @@ module hdwallet::create_nft_with_resource_account {
         user_signature:vector<u8>)
         acquires ModuleData,PayNFTTokenOrder{
         let caller_address = signer::address_of(account_signer);
-        assert!(caller_address == module_data.manager_address, error::permission_denied(ENOT_AUTHORIZED));
+        assert!(caller_address == module_data.manager_address, error::permission_denied(E_AUTHORIZED));
         assert!(amount>0,E_INVALID_ZERO_AMOUNT);
         assert!(delay>=300,E_DELAY_LESS_THAN_300);
         assert!(acquire_valid_user_sign_sig(user_signature, user_sign_message),E_USER_SIGNATURE_NOT_SATISFIED);
