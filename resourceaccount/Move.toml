@@ -1,11 +1,9 @@
 [package]
-name = "resourceaccountv3"
+name = "resourceaccount"
 version = "0.0.0"
 
 [dependencies]
-AptosFramework = { local = "../aptos-move/framework/aptos-framework" }
-AptosToken = { local = "../aptos-move/framework/aptos-token" }
-AptosStdlib = { local = "../aptos-move/framework/aptos-stdlib" }
+MoveStdlib = { git = "https://github.com/move-language/move.git", subdir = "language/move-stdlib", rev = "main" }
 
 [addresses]
-smtable="0x6fa7e35eca79120a2dc410cdad82a73d3fb1c74df10a67dee75f13b920ef044f"
+std =  "0x1"

@@ -16,7 +16,6 @@ module nfttoken::nftToken{
     use nfttoken::bucket_table::{Self, BucketTable};
     use nfttoken::merkle_proof::{Self};
 
-
     const INVALID_SIGNER: u64 = 0;
     const INVALID_amount: u64 = 1;
     const CANNOT_ZERO: u64 = 2;
@@ -142,18 +141,18 @@ module nfttoken::nftToken{
     }
 
 
-    public entry fun mint_script(
+    public entry fun mint_cript(
         receiver: &signer,
         resource_addr: address,
     )acquires ResourceInfo, NFTMachine,MintData,PublicMinters{
         coin::register<0x1::aptos_coin::AptosCoin>(receiver);
         let candy_data = borrow_global_mut<NFTMachine>(resource_addr);
-        let mint_price = candy_data.public_sale_mint_price;
         let now = aptos_framework::timestamp::now_seconds();
         assert!(now > candy_data.public_sale_mint_time, ESALE_NOT_STARTED);
-        mint(receiver,resource_addr,mint_price)
+        mint(receiver,resource_addr)
     }
 
+    // presale and verification by the Merkle Tree
     public entry fun mint_from_merkle(
         receiver: &signer,
         resource_addr: address,
@@ -214,7 +213,6 @@ module nfttoken::nftToken{
     fun mint(
         receiver: &signer,
         resource_addr: address, //resource_account
-        mint_price: u64
     )acquires ResourceInfo, NFTMachine,PublicMinters,MintData{
         let receiver_addr = signer::address_of(receiver);
         let resource_data = borrow_global<ResourceInfo>(resource_addr);
@@ -272,10 +270,7 @@ module nfttoken::nftToken{
         );
         let token_data_id = token::create_token_data_id(resource_addr,candy_data.collection_name,token_name);
         token::opt_in_direct_transfer(receiver,true);
-       // let fee = (300*mint_price)/10000;
-        //let collection_owner_price = mint_price - fee;
-       // coin::transfer<AptosCoin>(receiver, MokshyaFee, fee);
-        coin::transfer<AptosCoin>(receiver, resource_data.source, mint_price);// collection_owner_price);
+        coin::transfer<AptosCoin>(receiver, resource_data.source, candy_data.public_sale_mint_price);
         token::mint_token_to(
             &resource_signer_from_cap,
             receiver_addr,
