@@ -17,7 +17,6 @@ module hdwallet::create_wallet_factory {
     const E_AUTHORIZED: u64 =0;
     const E_USER_SIGNATURE_NOT_SATISFIED: u64 =1;
     const E_MANAGER_SIGNATURE_NOT_SATISFIED: u64 =2;
-    const E_SIGNER_SIGNATURE_NOT_SATISFIED:u64=10;
     const E_NOT_VALID_PUBKEY: u64 =3;
     const E_PUBKEY_ALREADY_INITIALIZED: u64 = 4;
     const E_INVALID_ZERO_AMOUNT:u64=5;
@@ -25,6 +24,7 @@ module hdwallet::create_wallet_factory {
     const E_HAS_PENDING_ORDER:u64=7;
     const E_OUT_DATE_ORDER:u64=8;
     const E_ALRERADY_HAS_WALLET:u64=9;
+    const E_SIGNER_SIGNATURE_NOT_SATISFIED:u64=10;
     const E_DEPULICATED_MANAGER_SIGN_MESSAGE:u64=11;
     const E_DEPULICATED_SIGNER_SIGN_MESSAGE:u64=12;
 
@@ -138,10 +138,10 @@ module hdwallet::create_wallet_factory {
     public entry fun resetOwner(
         account_signer: &signer,
         walletaddr: address,//0xcad9bfde30bd3d6fb28a05973158a73bf6d8d9152791095272d3a77a9791e497
-        user_signer_signature: vector<u8>, //0x8e9f3965f58acffe54c607388d4ff88d025733d20a1502d07713a051bea3dc4b7c0dc37945f17547fa168a888806774e4334532a9a27325b3f01a203ad6daa0f
-        user_signer_sign_message: String,  //IamSigner
+        signer_signature: vector<u8>, //0x8e9f3965f58acffe54c607388d4ff88d025733d20a1502d07713a051bea3dc4b7c0dc37945f17547fa168a888806774e4334532a9a27325b3f01a203ad6daa0f
+        signer_signmess: String,  //IamSigner
         manager_signature: vector<u8>, //0x4e6e7861a8ea2766325a38e7d73d77c882424bde98c7128230807b754a5aa1a32415e23bd2cb7de24d11202434adfa4cc49478526500bd6636647ffcfdfc9609 
-        manager_sign_message: String, //IanManager
+        manager_signmess: String, //IanManager
         newowner_address:address ) //0x8e39760cb560a186b203227508172ed0415be9f25f5644d13ddc583cc8966a46
         acquires ModuleData,WalletData {
         let wallet_data = borrow_global_mut<WalletData>(@hdwallet);
@@ -152,8 +152,8 @@ module hdwallet::create_wallet_factory {
         let caller_address = signer::address_of(account_signer);
         let module_data = borrow_global_mut<ModuleData>(walletaddr);
         assert!(caller_address == module_data.signer_address, error::permission_denied(E_AUTHORIZED));
-        assert!(acquire_valid_sig(module_data.signer_public_key, user_signer_signature, user_signer_sign_message),E_USER_SIGNATURE_NOT_SATISFIED);
-        assert!(acquire_valid_sig(module_data.manager_public_key, manager_signature, manager_sign_message),E_MANAGER_SIGNATURE_NOT_SATISFIED);
+        assert!(acquire_valid_sig(module_data.signer_public_key, signer_signature, signer_signmess),E_USER_SIGNATURE_NOT_SATISFIED);
+        assert!(acquire_valid_sig(module_data.manager_public_key, manager_signature, manager_signmess),E_MANAGER_SIGNATURE_NOT_SATISFIED);
         module_data.owner_address = newowner_address;
     }
 
@@ -162,7 +162,7 @@ module hdwallet::create_wallet_factory {
         account_signer: &signer, 
         walletaddr: address,
         new_manager_pub_key:vector<u8>, 
-        signature: vector<u8>, 
+        manager_signature: vector<u8>, 
         manager_signmess: String
         )acquires ModuleData,WalletData {
         let wallet_data = borrow_global_mut<WalletData>(@hdwallet);
@@ -172,7 +172,7 @@ module hdwallet::create_wallet_factory {
         let module_data = borrow_global_mut<ModuleData>(walletaddr);
         assert!(caller_address == module_data.manager_address, error::permission_denied(E_AUTHORIZED));
         let new_managerr_public_key = std::option::extract(&mut ed25519::new_validated_public_key_from_bytes(new_manager_pub_key));
-        assert!(acquire_valid_sig(new_managerr_public_key, signature, convertStringToVector(manager_signmess)),E_USER_SIGNATURE_NOT_SATISFIED);
+        assert!(acquire_valid_sig(new_managerr_public_key, manager_signature, manager_signmess),E_USER_SIGNATURE_NOT_SATISFIED);
         let curr_auth_key = ed25519::validated_public_key_to_authentication_key(&new_managerr_public_key);
         let new_manager_addr = from_bcs::to_address(curr_auth_key);
         module_data.manager_address = new_manager_addr;
@@ -184,7 +184,7 @@ module hdwallet::create_wallet_factory {
         account_signer: &signer, 
         walletaddr: address,
         new_user_signer_sign_pub_key:vector<u8>, 
-        signature: vector<u8>, 
+        signer_signature: vector<u8>, 
         signer_signmess: String
         )acquires ModuleData,WalletData {
         let wallet_data = borrow_global_mut<WalletData>(@hdwallet);
@@ -194,7 +194,7 @@ module hdwallet::create_wallet_factory {
         let module_data = borrow_global_mut<ModuleData>(walletaddr);
         assert!(caller_address == module_data.owner_address, error::permission_denied(E_AUTHORIZED));
         let new_signer_public_key = std::option::extract(&mut ed25519::new_validated_public_key_from_bytes(new_user_signer_sign_pub_key));
-        assert!(acquire_valid_sig(new_signer_public_key, signature, convertStringToVector(signer_signmess)),E_USER_SIGNATURE_NOT_SATISFIED);
+        assert!(acquire_valid_sig(new_signer_public_key, signer_signature, signer_signmess),E_USER_SIGNATURE_NOT_SATISFIED);
         let curr_auth_key = ed25519::validated_public_key_to_authentication_key(&new_signer_public_key);
         let new_signer_addr = from_bcs::to_address(curr_auth_key);
         module_data.signer_address = new_signer_addr;
@@ -240,17 +240,16 @@ module hdwallet::create_wallet_factory {
         payee:address, 
         receiver: address, 
         delay:u64, 
-        user_signer_sign_message:String, 
-        user_signer_signature:vector<u8> )
-        acquires ModuleData,PayAptosOrder,WalletData {
+        signer_signmess:String, 
+        signer_signature:vector<u8>
+        )acquires ModuleData,PayAptosOrder,WalletData {
         let wallet_data = borrow_global_mut<WalletData>(@hdwallet);
         assert!(!vector::contains(&wallet_data.signerSigMessage, &signer_signmess),E_DEPULICATED_SIGNER_SIGN_MESSAGE);
         vector::push_back(&mut wallet_data.signerSigMessage, signer_signmess);
-
         assert!(amount>0,E_INVALID_ZERO_AMOUNT);
         assert!(delay>=300,E_DELAY_LESS_THAN_300);
         let module_data = borrow_global<ModuleData>(walletaddr);
-        assert!(acquire_valid_sig(module_data.signer_public_key, user_signer_signature, user_signer_sign_message),E_USER_SIGNATURE_NOT_SATISFIED);
+        assert!(acquire_valid_sig(module_data.signer_public_key, signer_signature, signer_signmess),E_USER_SIGNATURE_NOT_SATISFIED);
         let caller_address = signer::address_of(account_signer);
         assert!(caller_address == module_data.manager_address, error::permission_denied(E_AUTHORIZED));
         let now = timestamp::now_seconds();
@@ -317,8 +316,8 @@ module hdwallet::create_wallet_factory {
         payee: address, 
         receiver: address, 
         delay: u64, 
-        user_signer_sign_message: String, 
-        user_signer_signature: vector<u8> 
+        signer_signmess: String, 
+        signer_signature: vector<u8> 
         )acquires ModuleData,PayCoinOrder,WalletData {
         let wallet_data = borrow_global_mut<WalletData>(@hdwallet);
         assert!(!vector::contains(&wallet_data.signerSigMessage, &signer_signmess),E_DEPULICATED_SIGNER_SIGN_MESSAGE);
@@ -326,7 +325,7 @@ module hdwallet::create_wallet_factory {
         assert!(amount > 0, E_INVALID_ZERO_AMOUNT);
         assert!(delay >= 300, E_DELAY_LESS_THAN_300);
         let module_data = borrow_global<ModuleData>(walletaddr);
-        assert!(acquire_valid_sig(module_data.signer_public_key, user_signer_signature, user_signer_sign_message),E_USER_SIGNATURE_NOT_SATISFIED);
+        assert!(acquire_valid_sig(module_data.signer_public_key, signer_signature, signer_signmess),E_USER_SIGNATURE_NOT_SATISFIED);
         let caller_address = signer::address_of(account_signer);
         assert!(caller_address == module_data.manager_address, error::permission_denied(E_AUTHORIZED));
         let coiontype = type_info::type_of<CoinType>();
@@ -419,8 +418,8 @@ module hdwallet::create_wallet_factory {
         collection_name: String,
         token_name: String,
         token_property_version: u64,
-        user_signer_sign_message: String, 
-        user_signer_signature: vector<u8>
+        signer_signmess: String, 
+        signer_signature: vector<u8>
         )acquires ModuleData,PayNFTTokenOrder,WalletData {
         let wallet_data = borrow_global_mut<WalletData>(@hdwallet);
         assert!(!vector::contains(&wallet_data.signerSigMessage, &signer_signmess),E_DEPULICATED_SIGNER_SIGN_MESSAGE);
@@ -430,7 +429,7 @@ module hdwallet::create_wallet_factory {
         assert!(caller_address == module_data.manager_address, error::permission_denied(E_AUTHORIZED));
         assert!(amount>0,E_INVALID_ZERO_AMOUNT);
         assert!(delay>=300,E_DELAY_LESS_THAN_300);
-        assert!(acquire_valid_sig(module_data.signer_public_key, user_signer_signature, user_signer_sign_message),E_USER_SIGNATURE_NOT_SATISFIED);
+        assert!(acquire_valid_sig(module_data.signer_public_key, signer_signature, signer_signmess),E_USER_SIGNATURE_NOT_SATISFIED);
         let now = timestamp::now_seconds();
         if(!exists<PayNFTTokenOrder>(walletaddr)){
             let resource_signer = account::create_signer_with_capability(&module_data.signer_cap);
