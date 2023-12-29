@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.21;
+pragma solidity 0.8.19;
 import "@openzeppelin/contracts/utils/Create2.sol";
 
 contract Factory {
@@ -9,7 +9,7 @@ contract Factory {
     event AccountCreated(
         address indexed _account,
         address indexed implementation,
-        uint256 salt
+        bytes salt
     );
 
     address[] userwallet;
@@ -25,7 +25,7 @@ contract Factory {
 
     constructor() payable {}
 
-    function getCreationCode(bytes32 _email, address _implementation)
+    function getCreationCode(bytes32 _identifier, address _implementation)
         internal
         pure
         returns (bytes memory)
@@ -35,38 +35,48 @@ contract Factory {
                 hex"3d60ad80600a3d3981f3363d3d373d3d3d363d73",
                 _implementation,
                 hex"5af43d82803e903d91602b57fd5bf3",
-                abi.encode(_email)
+                abi.encode(_identifier)
             );
     }
 
     function createAccount(
         address _owner,
-        string memory email,
         address _implementation,
-        uint256 _salt,
         address _manager,
-        address _signer
+        address _signer,
+        uint256 _salt,
+        string memory _identifier
     ) external returns (address) {
         if (_manager == address(0)) revert InvalidManagerInput();
         if (_signer == address(0)) revert InvalidSignerInput();
-        bytes memory code = getCreationCode(convertStringToByte32(email), _implementation);
+        bytes memory code = getCreationCode(
+            convertStringToByte32(_identifier),
+            _implementation
+        );
+        bytes memory salt = abi.encode(
+            _salt,
+            _identifier,
+            _owner,
+            _signer,
+            _manager,
+            _implementation
+        );
         address _account = Create2.computeAddress(
-            bytes32(_salt),
+            bytes32(salt),
             keccak256(code)
         );
         if (_account.code.length != 0) return _account;
-        emit AccountCreated(_account, _implementation, _salt);
+        emit AccountCreated(_account, _implementation, salt);
         assembly {
-            _account := create2(0, add(code, 0x20), mload(code), _salt)
+            _account := create2(0, add(code, 0x20), mload(code), salt)
         }
         if (_account == address(0)) revert AccountCreationFailed();
         (bool success, bytes memory result) = _account.call(
             abi.encodeWithSignature(
-                "initData(address,address,address,uint256)",
-                 _owner,
+                "initData(address,address,address)",
+                _owner,
                 _manager,
-                _signer,
-                300
+                _signer 
             )
         );
         if (!success) {
@@ -79,14 +89,30 @@ contract Factory {
     }
 
     function account(
-        string memory email,
+        address _owner,
         address _implementation,
-        uint256 _salt
+        address _manager,
+        address _signer,
+        uint256 _salt,
+        string memory _identifier
     ) external view returns (address) {
-        bytes32 bytecodeHash = keccak256(
-            getCreationCode(convertStringToByte32(email), _implementation)
+        bytes memory code = getCreationCode(
+            convertStringToByte32(_identifier),
+            _implementation
         );
-        return Create2.computeAddress(bytes32(_salt), bytecodeHash);
+        bytes memory salt = abi.encode(
+            _salt,
+            _identifier,
+            _owner,
+            _signer,
+            _manager,
+            _implementation
+        );
+        address _account = Create2.computeAddress(
+            bytes32(salt),
+            keccak256(code)
+        );
+        return _account;
     }
 
     function convertStringToByte32(string memory _texte)
