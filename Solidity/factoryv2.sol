@@ -1,21 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity >=0.7.0 <0.9.0;
 import "@openzeppelin/contracts/utils/Create2.sol";
 
 contract Factory {
     error AccountCreationFailed();
-    error InvalidManagerInput();
     error InvalidSignerInput();
-    event AccountCreated(
-        address indexed _account,
-        address indexed implementation,
-        bytes salt
-    );
+    error InvalidOwnerInput();
+    error DuplicatedAddress();
+    event AccountCreated(address indexed _account);
 
     address[] public userwallet;
     address public implementation;
     address public manager;
     address public owner;
+    mapping(string => uint256) walletlimit;
 
     function getWalletLength() public view returns (uint256) {
         return userwallet.length;
@@ -73,27 +71,17 @@ contract Factory {
     function createAccount(
         address _owner,
         address _signer,
-        uint256 _salt,
         string memory _identifier
-    ) external returns (address) {
+    ) external returns (address _account) {
+        if (_owner == address(0)) revert InvalidOwnerInput();
         if (_signer == address(0)) revert InvalidSignerInput();
-        bytes memory code = getCreationCode(
-            convertStringToByte32(_identifier)
-        );
-        bytes memory salt = abi.encode(
-            _salt,
-            _identifier,
-            _owner,
-            _signer,
-            manager,
-            implementation
-        );
-        address _account = Create2.computeAddress(
-            bytes32(salt),
-            keccak256(code)
-        );
-        if (_account.code.length != 0) return _account;
-        emit AccountCreated(_account, implementation, salt);
+        require(walletlimit[_identifier] == 0, "ONLY_ALLOW_ONE_WALLET");
+        walletlimit[_identifier] = 1;
+        bytes memory code = getCreationCode(convertStringToByte32(_identifier));
+        bytes memory salt = abi.encode(_identifier, _owner, _signer);
+        _account = Create2.computeAddress(bytes32(salt), keccak256(code));
+        if (_account.code.length != 0) revert DuplicatedAddress();
+        emit AccountCreated(_account);
         assembly {
             _account := create2(0, add(code, 0x20), mload(code), salt)
         }
@@ -112,30 +100,16 @@ contract Factory {
             }
         }
         userwallet.push(_account);
-        return _account;
     }
 
     function account(
         address _owner,
         address _signer,
-        uint256 _salt,
         string memory _identifier
-    ) external view returns (address) {
-        bytes memory code = getCreationCode(
-            convertStringToByte32(_identifier)
-        );
-        bytes memory salt = abi.encode(
-            _salt,
-            _identifier,
-            _owner,
-            _signer,
-            manager,
-            implementation
-        );
-        address _account = Create2.computeAddress(
-            bytes32(salt),
-            keccak256(code)
-        );
+    ) external view returns (address _account) {
+        bytes memory code = getCreationCode(convertStringToByte32(_identifier));
+        bytes memory salt = abi.encode(_identifier, _owner, _signer);
+        _account = Create2.computeAddress(bytes32(salt), keccak256(code));
         return _account;
     }
 
