@@ -14,7 +14,6 @@ import "@gnosis.pm/safe-contracts@1.3.0/contracts/base/OwnerManager.sol";
 contract Wallet is OwnerManager {
     uint256 private initialized;
     uint256 public minDelay = 300 seconds;
-    //address[] public owners;
     address public signer;
     address public manager;
     mapping(bytes32 => bool) usedsig;
@@ -44,9 +43,14 @@ contract Wallet is OwnerManager {
         address indexed to,
         uint256 indexed amount
     );
-
+    event EthTrans(address indexed to, uint256 indexed amount);
     event TokenTransPayee(
         address indexed payee,
+        address indexed tokencontract,
+        address indexed to,
+        uint256 amount
+    );
+    event TokenTrans(
         address indexed tokencontract,
         address indexed to,
         uint256 amount
@@ -56,6 +60,25 @@ contract Wallet is OwnerManager {
         address indexed tokencontract,
         address indexed to,
         uint256 tokenID
+    );
+    event NFTTrans(
+        address indexed tokencontract,
+        address indexed to,
+        uint256 tokenID
+    );
+    event NFT1155TransPayee(
+        address indexed payee,
+        address indexed tokencontract,
+        address indexed to,
+        uint256 tokenID,
+        uint256 amount
+    );
+    event NFT1155Trans(
+        address indexed tokencontract,
+        address indexed to,
+        uint256 tokenID,
+        uint256 amount,
+        bytes32 data
     );
 
     struct PayEthOrder {
@@ -85,13 +108,11 @@ contract Wallet is OwnerManager {
         uint256 tokenID;
         uint256 amount;
         uint256 delay;
-        bytes data;
+        bytes32 data;
     }
 
     modifier onlyOwner() {
-        //if (msg.sender != owner) revert NotOwnerAuthorized();
         if (!isOwner(msg.sender)) revert NotOwnerAuthorized();
-
         _;
     }
 
@@ -105,18 +126,13 @@ contract Wallet is OwnerManager {
         address _manager,
         address _signaddress
     ) external {
-        if (initialized == 1) revert AlreadyInitialzed();
-        // owner = _owneraddress;
+        if (initialized != 0) revert AlreadyInitialzed();
         signer = _signaddress;
         manager = _manager;
         initialized = 1;
         address[] memory array = new address[](1);
         array[0] = _owneraddress;
         setupOwners(array, 0);
-    }
-
-    function _isvalidSig(bytes memory sig) internal view returns (bool) {
-        return usedsig[keccak256(sig)];
     }
 
     function updateDelay(
@@ -131,35 +147,29 @@ contract Wallet is OwnerManager {
         minDelay = delay;
     }
 
-    function updateManager(
-        address _manager,
-        uint256 timestamp,
-        bytes calldata signature
-    ) public onlyOwner {
+    function updateManager(address _manager) public onlyManager {
         if (_manager == address(0)) revert InvalidInput();
-        string memory hash = string(abi.encodePacked(_manager, timestamp));
-        if (!isValidManagerSignature(hash, signature))
-            revert InvalidManagerSignature();
         manager = _manager;
     }
 
-    // function updateSignAddress(
-    //     address _signer,
-    //     uint256 timestamp,
-    //     bytes calldata signature
-    // ) external onlyOwner {
-    //     if (_signer == address(0)) revert InvalidInput();
-    //     string memory hash = string(abi.encodePacked(_signer, timestamp));
-    //     if (!isValidUserSignature(hash, signature))
-    //         revert InvalidUserSignature();
-    //     signer = _signer;
-    // }
+    function updateSignAddress(
+        address _signer,
+        uint256 timestamp,
+        bytes calldata signature
+    ) external onlyOwner {
+        if (_signer == address(0)) revert InvalidInput();
+        string memory hash = string(abi.encodePacked(_signer, timestamp));
+        if (!isValidUserSignature(hash, signature))
+            revert InvalidUserSignature();
+        signer = _signer;
+    }
 
     function setEthTransPayee(
         address payee,
         address to,
         uint256 amount,
         uint256 delay,
+        uint256 timestamp,
         bytes calldata signature
     ) public onlyManager {
         if (ethpayeeinfo.delay != 0 && ethpayeeinfo.delay >= block.timestamp)
@@ -167,13 +177,14 @@ contract Wallet is OwnerManager {
         if (delay < minDelay) {
             revert TimelockInsufficientDelay(delay, minDelay);
         }
-        string memory hash = string(abi.encodePacked(payee, to, amount, delay));
-        if (!isValidUserSignature(hash, signature))
-            revert InvalidUserSignature();
         if (address(this).balance < amount) {
             revert ENotEnoughBalance(address(this).balance);
         }
-
+        string memory hash = string(
+            abi.encodePacked(payee, to, amount, delay, timestamp)
+        );
+        if (!isValidUserSignature(hash, signature))
+            revert InvalidUserSignature();
         if (ethpayeeinfo.delay == 0) {
             ethpayeeinfo = PayEthOrder({
                 payee: payee,
@@ -182,10 +193,10 @@ contract Wallet is OwnerManager {
                 to: to
             });
         } else {
-            ethpayeeinfo.delay = delay;
-            ethpayeeinfo.payee = payee;
             ethpayeeinfo.to = to;
             ethpayeeinfo.amount = amount;
+            ethpayeeinfo.delay = delay;
+            ethpayeeinfo.payee = payee;
         }
         emit EthTransPayee(payee, to, amount);
     }
@@ -196,6 +207,7 @@ contract Wallet is OwnerManager {
         address to,
         uint256 amount,
         uint256 delay,
+        uint256 timestamp,
         bytes calldata signature
     ) public onlyManager {
         if (
@@ -204,16 +216,16 @@ contract Wallet is OwnerManager {
         if (delay < minDelay) {
             revert TimelockInsufficientDelay(delay, minDelay);
         }
-        string memory hash = string(
-            abi.encodePacked(tokencontract, payee, to, amount, delay)
-        );
-        if (!isValidUserSignature(hash, signature))
-            revert InvalidUserSignature();
         if (IERC20(tokencontract).balanceOf(address(this)) < amount) {
             revert ENotEnoughTokenBalance(
                 IERC20(tokencontract).balanceOf(address(this))
             );
         }
+        string memory hash = string(
+            abi.encodePacked(tokencontract, payee, to, amount, delay, timestamp)
+        );
+        if (!isValidUserSignature(hash, signature))
+            revert InvalidUserSignature();
         if (tokenpayeeinfo.delay == 0) {
             tokenpayeeinfo = PayTokenOrder({
                 contractaddress: tokencontract,
@@ -238,6 +250,7 @@ contract Wallet is OwnerManager {
         address to,
         uint256 tokenID,
         uint256 delay,
+        uint256 timestamp,
         bytes calldata signature
     ) public onlyManager {
         if (nftpayeeinfo.delay != 0 && nftpayeeinfo.delay >= block.timestamp)
@@ -245,15 +258,22 @@ contract Wallet is OwnerManager {
         if (delay < minDelay) {
             revert TimelockInsufficientDelay(delay, minDelay);
         }
+        if (IERC721(tokencontract).ownerOf(tokenID) != address(this)) {
+            revert ENotTokenOwner(IERC721(tokencontract).ownerOf(tokenID));
+        }
         string memory hash = string(
-            abi.encodePacked(tokencontract, payee, to, tokenID, delay)
+            abi.encodePacked(
+                tokencontract,
+                payee,
+                to,
+                tokenID,
+                delay,
+                timestamp
+            )
         );
 
         if (!isValidUserSignature(hash, signature))
             revert InvalidUserSignature();
-        if (IERC721(tokencontract).ownerOf(tokenID) != address(this)) {
-            revert ENotTokenOwner(IERC721(tokencontract).ownerOf(tokenID));
-        }
         if (nftpayeeinfo.delay == 0) {
             nftpayeeinfo = PayNFTOrder({
                 contractaddress: tokencontract,
@@ -279,6 +299,7 @@ contract Wallet is OwnerManager {
         uint256 tokenID,
         uint256 amount,
         uint256 delay,
+        uint256 timestamp,
         bytes calldata signature
     ) public onlyManager {
         if (
@@ -288,12 +309,6 @@ contract Wallet is OwnerManager {
         if (delay < minDelay) {
             revert TimelockInsufficientDelay(delay, minDelay);
         }
-        string memory hash = string(
-            abi.encodePacked(tokencontract, payee, to, tokenID, amount, delay)
-        );
-
-        if (!isValidUserSignature(hash, signature))
-            revert InvalidUserSignature();
         if (
             IERC1155(tokencontract).balanceOf(address(this), tokenID) < amount
         ) {
@@ -301,6 +316,21 @@ contract Wallet is OwnerManager {
                 IERC1155(tokencontract).balanceOf(address(this), tokenID)
             );
         }
+        string memory hash = string(
+            abi.encodePacked(
+                tokencontract,
+                payee,
+                to,
+                tokenID,
+                amount,
+                delay,
+                timestamp
+            )
+        );
+
+        if (!isValidUserSignature(hash, signature))
+            revert InvalidUserSignature();
+
         if (nft1155payeeinfo.delay == 0) {
             nft1155payeeinfo = Pay1155NFTOrder({
                 contractaddress: tokencontract,
@@ -320,10 +350,11 @@ contract Wallet is OwnerManager {
             nft1155payeeinfo.data = "";
             nft1155payeeinfo.delay = delay;
         }
-        emit NFTTransPayee(payee, tokencontract, to, tokenID);
+        emit NFT1155TransPayee(payee, tokencontract, to, tokenID, amount);
     }
 
     function prevOwner(address owner) internal view returns (address preowner) {
+        require(isOwner(owner), "NOT_OWNER");
         address[] memory array = getOwners();
         for (uint256 index; index < array.length; index++) {
             address currentowner = array[index];
@@ -338,21 +369,16 @@ contract Wallet is OwnerManager {
         address oldowner,
         address newowner,
         uint256 ecodehash,
-        bytes calldata managersig,
+        uint256 timestamp,
         bytes calldata usersig
     ) public onlyManager {
-        string memory _ecodehash = string(abi.encodePacked(ecodehash));
-        if (!isValidManagerSignature(_ecodehash, managersig))
-            revert InvalidManagerSignature();
         string memory sigmsg = string(
-            abi.encodePacked(oldowner, newowner, ecodehash)
+            abi.encodePacked(oldowner, newowner, ecodehash, timestamp)
         );
         if (!isValidUserSignature(sigmsg, usersig))
             revert InvalidUserSignature();
         address preowner = prevOwner(oldowner);
         swapOwner(preowner, oldowner, newowner);
-        // addOwnerWithThreshold(newowner, 0);
-        // owner = newowner;
     }
 
     function addOwner(
@@ -380,6 +406,7 @@ contract Wallet is OwnerManager {
 
     function transEth(address to, uint256 value) external payable onlyOwner {
         Address.sendValue(payable(to), value);
+        emit EthTrans(to, value);
     }
 
     function payeeEthTrans() external {
@@ -388,6 +415,7 @@ contract Wallet is OwnerManager {
         if (ethpayeeinfo.payee != msg.sender) revert NotPayeeAuthorized();
         Address.sendValue(payable(ethpayeeinfo.to), ethpayeeinfo.amount);
         ethpayeeinfo.delay = 1;
+        emit EthTrans(ethpayeeinfo.to, ethpayeeinfo.amount);
     }
 
     function transToken(
@@ -396,6 +424,7 @@ contract Wallet is OwnerManager {
         uint256 amount
     ) external payable onlyOwner {
         IERC20(contractaddress).transfer(to, amount);
+        emit TokenTrans(contractaddress, to, amount);
     }
 
     function payeeTokenTrans() external {
@@ -410,6 +439,11 @@ contract Wallet is OwnerManager {
             "Transfer_Token_Faliled"
         );
         tokenpayeeinfo.delay = 1;
+        emit TokenTrans(
+            tokenpayeeinfo.contractaddress,
+            tokenpayeeinfo.to,
+            tokenpayeeinfo.amount
+        );
     }
 
     function transNFT(
@@ -430,7 +464,7 @@ contract Wallet is OwnerManager {
                 revert(add(result, 32), mload(result))
             }
         }
-        // IERC721(contractaddress).transferFrom(address(this), to, tokenID);
+        emit NFTTrans(contractaddress, to, tokenID);
     }
 
     function payeeNFTTrans() external {
@@ -450,12 +484,12 @@ contract Wallet is OwnerManager {
                 revert(add(result, 32), mload(result))
             }
         }
-        // IERC721(nftpayeeinfo.contractaddress).transferFrom(
-        //     address(this),
-        //     nftpayeeinfo.to,
-        //     nftpayeeinfo.tokenID
-        // );
         nftpayeeinfo.delay = 1;
+        emit NFTTrans(
+            nftpayeeinfo.contractaddress,
+            nftpayeeinfo.to,
+            nftpayeeinfo.tokenID
+        );
     }
 
     function trans1155NFT(
@@ -479,13 +513,7 @@ contract Wallet is OwnerManager {
                 revert(add(result, 32), mload(result))
             }
         }
-        // IERC1155(contractaddress).safeTransferFrom(
-        //     address(this),
-        //     to,
-        //     tokenID,
-        //     amount,
-        //     data
-        // );
+        emit NFT1155Trans(contractaddress, to, tokenID, amount, "");
     }
 
     function payee1155Trans() external {
@@ -509,14 +537,14 @@ contract Wallet is OwnerManager {
                 revert(add(result, 32), mload(result))
             }
         }
-        // IERC1155(nft1155payeeinfo.contractaddress).safeTransferFrom(
-        //     address(this),
-        //     nft1155payeeinfo.to,
-        //     nft1155payeeinfo.tokenID,
-        //     nft1155payeeinfo.amount,
-        //     nft1155payeeinfo.data
-        // );
         nft1155payeeinfo.delay = 1;
+        emit NFT1155Trans(
+            nft1155payeeinfo.contractaddress,
+            nft1155payeeinfo.to,
+            nft1155payeeinfo.tokenID,
+            nft1155payeeinfo.amount,
+            nft1155payeeinfo.data
+        );
     }
 
     function identifier() external view returns (string memory) {
@@ -542,23 +570,21 @@ contract Wallet is OwnerManager {
     function isValidUserSignature(
         string memory _veridata,
         bytes calldata signature
-    ) public returns (bool) {
+    ) public returns (bool _isvalidsig) {
         bytes32 _msghash = getMessageHash(_veridata);
         address _owner = signer;
-        bool _isvalidsig = isValidSignature(_owner, _msghash, signature);
+         _isvalidsig = isValidSignature(_owner, _msghash, signature);
         usedsig[keccak256(signature)] = true;
-        return _isvalidsig;
     }
 
     function isValidManagerSignature(
         string memory _veridata,
         bytes calldata signature
-    ) public returns (bool) {
+    ) public returns (bool _isvalidsig) {
         bytes32 _msghash = getMessageHash(_veridata);
         address _manager = manager;
-        bool _isvalidsig = isValidSignature(_manager, _msghash, signature);
+         _isvalidsig = isValidSignature(_manager, _msghash, signature);
         usedsig[keccak256(signature)] = true;
-        return _isvalidsig;
     }
 
     function isValidSignature(
