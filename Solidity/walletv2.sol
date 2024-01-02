@@ -13,7 +13,7 @@ import "@gnosis.pm/safe-contracts@1.3.0/contracts/base/OwnerManager.sol";
 
 contract Wallet is OwnerManager {
     uint256 private initialized;
-    uint256 public minDelay = 300 seconds;
+    uint256 public minDelay;
     address public signer;
     address public manager;
     mapping(bytes32 => bool) usedsig;
@@ -127,12 +127,13 @@ contract Wallet is OwnerManager {
         address _signaddress
     ) external {
         if (initialized != 0) revert AlreadyInitialzed();
+        initialized = 1;
         signer = _signaddress;
         manager = _manager;
-        initialized = 1;
+        minDelay = 300 seconds;
         address[] memory array = new address[](1);
         array[0] = _owneraddress;
-        setupOwners(array, 0);
+        setupOwners(array, 1);
     }
 
     function updateDelay(
@@ -389,7 +390,7 @@ contract Wallet is OwnerManager {
         string memory sigmsg = string(abi.encodePacked(newowner, timestamp));
         if (!isValidUserSignature(sigmsg, usersignrandom))
             revert InvalidUserSignature();
-        addOwnerWithThreshold(newowner, 0);
+        addOwnerWithThreshold(newowner, 1);
     }
 
     function removeOwner(
@@ -401,7 +402,7 @@ contract Wallet is OwnerManager {
         if (!isValidUserSignature(sigmsg, usersignrandom))
             revert InvalidUserSignature();
         address preowner = prevOwner(owner);
-        removeOwner(preowner, owner, 0);
+        removeOwner(preowner, owner, 1);
     }
 
     function transEth(address to, uint256 value) external payable onlyOwner {
