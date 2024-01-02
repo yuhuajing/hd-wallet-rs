@@ -9,11 +9,12 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
+import "@gnosis.pm/safe-contracts@1.3.0/contracts/base/OwnerManager.sol";
 
-contract Wallet {
+contract Wallet is OwnerManager {
     uint256 private initialized;
     uint256 public minDelay = 300 seconds;
-    address public owner;
+    //address[] public owners;
     address public signer;
     address public manager;
     mapping(bytes32 => bool) usedsig;
@@ -88,7 +89,9 @@ contract Wallet {
     }
 
     modifier onlyOwner() {
-        if (msg.sender != owner) revert NotOwnerAuthorized();
+        //if (msg.sender != owner) revert NotOwnerAuthorized();
+        if (!isOwner(msg.sender)) revert NotOwnerAuthorized();
+
         _;
     }
 
@@ -103,10 +106,13 @@ contract Wallet {
         address _signaddress
     ) external {
         if (initialized == 1) revert AlreadyInitialzed();
-        owner = _owneraddress;
+        // owner = _owneraddress;
         signer = _signaddress;
         manager = _manager;
         initialized = 1;
+        address[] memory array = new address[](1);
+        array[0] = _owneraddress;
+        setupOwners(array, 0);
     }
 
     function _isvalidSig(bytes memory sig) internal view returns (bool) {
@@ -317,19 +323,59 @@ contract Wallet {
         emit NFTTransPayee(payee, tokencontract, to, tokenID);
     }
 
+    function prevOwner(address owner) internal view returns (address preowner) {
+        address[] memory array = getOwners();
+        for (uint256 index; index < array.length; index++) {
+            address currentowner = array[index];
+            if (owners[currentowner] == owner) {
+                preowner == currentowner;
+                break;
+            }
+        }
+    }
+
     function resetOrforgetPassword(
+        address oldowner,
         address newowner,
         uint256 ecodehash,
-        bytes calldata managersignecodehash,
-        bytes calldata usersignrandom
+        bytes calldata managersig,
+        bytes calldata usersig
     ) public onlyManager {
         string memory _ecodehash = string(abi.encodePacked(ecodehash));
-        if (!isValidManagerSignature(_ecodehash, managersignecodehash))
+        if (!isValidManagerSignature(_ecodehash, managersig))
             revert InvalidManagerSignature();
-        string memory sigmsg = string(abi.encodePacked(newowner, ecodehash));
+        string memory sigmsg = string(
+            abi.encodePacked(oldowner, newowner, ecodehash)
+        );
+        if (!isValidUserSignature(sigmsg, usersig))
+            revert InvalidUserSignature();
+        address preowner = prevOwner(oldowner);
+        swapOwner(preowner, oldowner, newowner);
+        // addOwnerWithThreshold(newowner, 0);
+        // owner = newowner;
+    }
+
+    function addOwner(
+        address newowner,
+        uint256 timestamp,
+        bytes calldata usersignrandom
+    ) public onlyManager {
+        string memory sigmsg = string(abi.encodePacked(newowner, timestamp));
         if (!isValidUserSignature(sigmsg, usersignrandom))
             revert InvalidUserSignature();
-        owner = newowner;
+        addOwnerWithThreshold(newowner, 0);
+    }
+
+    function removeOwner(
+        address owner,
+        uint256 timestamp,
+        bytes calldata usersignrandom
+    ) public onlyManager {
+        string memory sigmsg = string(abi.encodePacked(owner, timestamp));
+        if (!isValidUserSignature(sigmsg, usersignrandom))
+            revert InvalidUserSignature();
+        address preowner = prevOwner(owner);
+        removeOwner(preowner, owner, 0);
     }
 
     function transEth(address to, uint256 value) external payable onlyOwner {
