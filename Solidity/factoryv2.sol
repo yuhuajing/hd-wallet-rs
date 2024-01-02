@@ -14,6 +14,7 @@ contract Factory {
     address public manager;
     address public owner;
     mapping(string => uint256) walletlimit;
+    mapping(string => address) identiWallet;
 
     function getWalletLength() public view returns (uint256) {
         return userwallet.length;
@@ -104,6 +105,7 @@ contract Factory {
                 revert(add(result, 32), mload(result))
             }
         }
+        identiWallet[_identifier] = _account;
         userwallet.push(_account);
     }
 
