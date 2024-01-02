@@ -30,6 +30,11 @@ contract Factory {
         _;
     }
 
+    modifier onlyManager() {
+        require(msg.sender == manager, "NOT_OWNER");
+        _;
+    }
+
     function updateOwner(address newOwner) external onlyOwner {
         require(
             newOwner != address(0) && newOwner != owner,
@@ -72,7 +77,7 @@ contract Factory {
         address _owner,
         address _signer,
         string memory _identifier
-    ) external returns (address _account) {
+    ) external onlyManager returns (address _account) {
         if (_owner == address(0)) revert InvalidOwnerInput();
         if (_signer == address(0)) revert InvalidSignerInput();
         require(walletlimit[_identifier] == 0, "ONLY_ALLOW_ONE_WALLET");
